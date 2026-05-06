@@ -10,28 +10,54 @@ def accept_audio(file_path):
     return file_path
 
 def transcribe_audio(file_path):
-    model = WhisperModel("base", device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(file_path, beam_size=5)
-    full_text = " ".join([segment.text.strip() for segment in segments])
-    return full_text
+    try:
+        valid_path = accept_audio(file_path)
+        
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+        segments, _ = model.transcribe(valid_path, beam_size=5)
+        full_text = " ".join([segment.text.strip() for segment in segments])
+        return {"status": "success", "text": full_text}
+        
+    except FileNotFoundError as e:
+        return {"status": "error", "message": str(e)}
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    except Exception as e:
+        return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
 
 def transcribe_with_timestamps(file_path):
-    model = WhisperModel("base", device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(file_path)
-    result = []
-    for segment in segments:
-        result.append({
-            "start": round(segment.start, 2),
-            "end": round(segment.end, 2),
-            "text": segment.text.strip()
-        })
-    return result
+    try:
+        valid_path = accept_audio(file_path)
+        
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+        segments, _ = model.transcribe(valid_path)
+        
+        result = []
+        for segment in segments:
+            result.append({
+                "start": round(segment.start, 2),
+                "end": round(segment.end, 2),
+                "text": segment.text.strip()
+            })
+        return {"status": "success", "data": result}
+        
+    except FileNotFoundError as e:
+        return {"status": "error", "message": str(e)}
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    except Exception as e:
+        return {"status": "error", "message": f"Transcription failed: {str(e)}"}
 
 if __name__ == "__main__":
-    # Add the audio file
-    test_file = "audio.mp3" 
-    if os.path.exists(test_file):
-        print("The transcription process has been started")
-        print(transcribe_with_timestamps(test_file))
+    # Add File
+    test_file = "/content/harvard.wav" 
+    print("The Transcription Process has been Started!")
+    
+    response = transcribe_with_timestamps(test_file)
+    
+    if response["status"] == "success":
+        print("Transcription Complete:")
+        for entry in response["data"]:
+            print(f"[{entry['start']}s - {entry['end']}s]: {entry['text']}")
     else:
-        print("Please place a 'audio.mp3' in the folder to test.")
+        print(f"Failed to process: {response['message']}")
