@@ -12,12 +12,12 @@ def accept_audio(file_path):
 def transcribe_audio(file_path):
     try:
         valid_path = accept_audio(file_path)
-        
+
         model = WhisperModel("base", device="cpu", compute_type="int8")
         segments, _ = model.transcribe(valid_path, beam_size=5)
         full_text = " ".join([segment.text.strip() for segment in segments])
-        return {"status": "success", "text": full_text}
-        
+        return {"status": "success", "data": full_text}
+
     except FileNotFoundError as e:
         return {"status": "error", "message": str(e)}
     except ValueError as e:
@@ -28,10 +28,10 @@ def transcribe_audio(file_path):
 def transcribe_with_timestamps(file_path):
     try:
         valid_path = accept_audio(file_path)
-        
+
         model = WhisperModel("base", device="cpu", compute_type="int8")
         segments, _ = model.transcribe(valid_path)
-        
+
         result = []
         for segment in segments:
             result.append({
@@ -40,7 +40,7 @@ def transcribe_with_timestamps(file_path):
                 "text": segment.text.strip()
             })
         return {"status": "success", "data": result}
-        
+
     except FileNotFoundError as e:
         return {"status": "error", "message": str(e)}
     except ValueError as e:
@@ -49,15 +49,32 @@ def transcribe_with_timestamps(file_path):
         return {"status": "error", "message": f"Transcription failed: {str(e)}"}
 
 if __name__ == "__main__":
-    # Add File
     test_file = "/content/harvard.wav" 
-    print("The Transcription Process has been Started!")
+
+    print("--- Audio Transcription CLI ---")
+    print("1. Full Transcription (Text Only)")
+    print("2. Detailed Transcription (With Timestamps)")
     
-    response = transcribe_with_timestamps(test_file)
-    
-    if response["status"] == "success":
-        print("Transcription Complete:")
-        for entry in response["data"]:
-            print(f"[{entry['start']}s - {entry['end']}s]: {entry['text']}")
+    choice = input("Select an option (1 or 2): ").strip()
+
+    print("\nThe Transcription Process has been Started!")
+
+    if choice == "1":
+        response = transcribe_audio(test_file)
+        if response["status"] == "success":
+            print("\n--- Full Audio Transcription ---")
+            print(response["data"])
+        else:
+            print(f"Error: {response['message']}")
+
+    elif choice == "2":
+        response = transcribe_with_timestamps(test_file)
+        if response["status"] == "success":
+            print("\n--- Transcription with Timestamps ---")
+            for entry in response["data"]:
+                print(f"[{entry['start']}s - {entry['end']}s]: {entry['text']}")
+        else:
+            print(f"Error: {response['message']}")
+
     else:
-        print(f"Failed to process: {response['message']}")
+        print("Invalid selection. Please run the script again and choose 1 or 2.")
